@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   hagencms-server:
@@ -8,4 +8,6 @@ services:
       dockerfile: Dockerfile
     command: bun run start
     ports:
-      - '3003:3003'
+      - "3000:3000"
+    volumes:
+      - ./:/home/bun/app/:rw,delegated
