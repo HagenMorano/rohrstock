@@ -2,7 +2,7 @@
   "name": "hagencms-server",
   "module": "index.ts",
   "scripts": {
-    "start": "bun --hot index.ts"
+    "start": "bun --hot index.tsx"
   },
   "dependencies": {
     "hono": "^3.9.1"
