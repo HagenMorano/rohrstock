@@ -7,5 +7,6 @@ body {
     background: #226;
     color: #fff;
     text-align: center;
-    font-family: Arial, Helvetica, sans-serif
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0; 
 }
