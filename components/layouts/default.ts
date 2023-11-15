@@ -3,18 +3,18 @@ import van, { ChildDom } from "mini-van-plate/van-plate";
 const { html, body, head, meta, link, script, title } = van.tags;
 
 interface Props {
-  // props may be incomplete!
+  // props are incomplete!
   metaAttributes?: {
     charset: string;
     content: string;
     name: string;
   }[];
-  // props may be incomplete!
+  // props are incomplete!
   linkAttributes?: {
     rel: string;
     href: string;
   }[];
-  // props may be incomplete!
+  // props are incomplete!
   scriptAttributes?: {
     src: string;
     defer: string;

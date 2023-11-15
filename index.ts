@@ -1,4 +1,4 @@
-import van from "mini-van-plate/van-plate";
+import van, { Element } from "mini-van-plate/van-plate";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
@@ -22,7 +22,9 @@ const generateEndpoint = async (filePath: string): Promise<Endpoint> => {
   // Mind: file names may contain multiple dots
   const importPath = filePath.split(".")[0];
 
-  const Page = (await import(`@/${importPath}`)) as unknown as any;
+  const Page = (await import(`@/${importPath}`)) as unknown as {
+    default: Element;
+  };
 
   return {
     path,
@@ -40,19 +42,36 @@ const readDirRecursive = (currentPath: string) =>
 
 readDirRecursive(pagesPath);
 
+// Generate all pages endpoints in advance for ultimate performance
 Promise.all(endpoints).then((pages) =>
   Bun.serve({
-    fetch(req) {
+    async fetch(req) {
       const url = new URL(req.url);
 
-      // serve static files from /static
-      if (url.pathname.startsWith("/static")) {
+      // serve static files
+      if (
+        url.pathname.startsWith("/assets") ||
+        url.pathname.startsWith("/static")
+      ) {
         const filePath = "." + new URL(req.url).pathname;
         const file = Bun.file(filePath);
         return new Response(file);
       }
 
-      // serve /pages
+      // optimize images via imgproxy container
+      if (url.pathname.startsWith("/image")) {
+        const res = await fetch(
+          "http://hagencms-imgproxy:8080/_/resize:fill:300:400:0/plain/http://hagencms-server:3000/assets/full_placeholder.png@jpg"
+        );
+
+        // proxy response from imgproxy
+        return new Response(res.body, {
+          status: res.status,
+          headers: res.headers,
+        });
+      }
+
+      // serve public pages from /pages
       const pageData = pages.find((page) => page.path === url.pathname);
       if (pageData) {
         return new Response(pageData.template, {

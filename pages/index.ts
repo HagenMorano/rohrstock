@@ -2,7 +2,7 @@ import van from "mini-van-plate/van-plate";
 
 import DefaultLayout from "@/components/layouts/default";
 
-const { h1 } = van.tags;
+const { div, h1, img } = van.tags;
 
 const start = DefaultLayout({
   linkAttributes: [
@@ -12,7 +12,9 @@ const start = DefaultLayout({
     },
   ],
   pageTitle: "HagenCMS Demo Page",
-  page: [h1("HagenCMS")],
+  page: [
+    div({ class: "title-wrapper" }, h1("HagenCMS"), img({ src: "/image" })),
+  ],
 });
 
 export default start;
