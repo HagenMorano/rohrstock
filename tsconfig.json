@@ -1,8 +1,8 @@
 {
   "include": [
     "index.*", 
+    "admin/**/*", 
     "components/**/*", 
-    "layouts/**/*" , 
     "pages/**/*"
   ],
   "exclude": ["node_modules"],

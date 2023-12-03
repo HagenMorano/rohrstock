@@ -10,7 +10,15 @@ interface Endpoint {
 const pagesPath = "pages";
 const endpoints: Promise<Endpoint>[] = [];
 
-const generateEndpoint = async (filePath: string): Promise<Endpoint> => {
+const fetchVanTemplate = async (importPath: string) => {
+  const vanTemplate = (await import(`@/${importPath}`)) as unknown as {
+    default: Element;
+  };
+
+  return vanTemplate.default;
+};
+
+const generatePageEndpoint = async (filePath: string): Promise<Endpoint> => {
   // Mind: needs to be more safe
   // Mind: folder names may contain dots
   // Mind: file names may contain multiple dots
@@ -22,13 +30,11 @@ const generateEndpoint = async (filePath: string): Promise<Endpoint> => {
   // Mind: file names may contain multiple dots
   const importPath = filePath.split(".")[0];
 
-  const Page = (await import(`@/${importPath}`)) as unknown as {
-    default: Element;
-  };
+  const page = await fetchVanTemplate(importPath);
 
   return {
     path,
-    template: van.html(Page.default),
+    template: van.html(page),
   };
 };
 
@@ -37,15 +43,18 @@ const readDirRecursive = (currentPath: string) =>
     const absolute = join(currentPath, file);
     statSync(absolute).isDirectory()
       ? readDirRecursive(absolute)
-      : endpoints.push(generateEndpoint(absolute));
+      : endpoints.push(generatePageEndpoint(absolute));
   });
 
 readDirRecursive(pagesPath);
 
 // Generate all pages endpoints in advance for ultimate performance
-Promise.all(endpoints).then((pages) =>
-  Bun.serve({
-    async fetch(req) {
+Promise.all(endpoints).then((pages) => {
+  const server = Bun.serve<{ username: string }>({
+    async fetch(req, server) {
+      const success = server.upgrade(req);
+      if (success) return undefined;
+
       const url = new URL(req.url);
 
       // serve static files
@@ -71,6 +80,16 @@ Promise.all(endpoints).then((pages) =>
         });
       }
 
+      // serve Admin UI
+      if (url.pathname === "/admin") {
+        const adminPage = await fetchVanTemplate("admin/index");
+        return new Response(van.html(adminPage), {
+          headers: {
+            "Content-Type": "text/html",
+          },
+        });
+      }
+
       // serve public pages from /pages
       const pageData = pages.find((page) => page.path === url.pathname);
       if (pageData) {
@@ -82,5 +101,24 @@ Promise.all(endpoints).then((pages) =>
       }
       return new Response("Bun!");
     },
-  })
-);
+    websocket: {
+      publishToSelf: true,
+      open(ws) {
+        const msg = `He has entered the chat`;
+        ws.subscribe("admin-ui");
+        server.publish("admin-ui", msg);
+      },
+      message(ws, message) {
+        console.log("MESSAGE!", message);
+        // the server re-broadcasts incoming messages to everyone
+        ws.send("MY MESSAGE");
+        server.publish("admin-ui", message);
+      },
+      close(ws) {
+        const msg = "He has left the chat";
+        server.publish("admin-ui", msg);
+        ws.unsubscribe("admin-ui");
+      },
+    },
+  });
+});
