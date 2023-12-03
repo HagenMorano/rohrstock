@@ -1,6 +1,4 @@
-import van, { ChildDom } from "mini-van-plate/van-plate";
-
-const { body, head, meta, link, script, title } = van.tags;
+import { title } from "node:process";
 
 interface Props {
   // props are incomplete!
@@ -20,7 +18,7 @@ interface Props {
     defer?: string;
   }[];
   pageTitle?: string;
-  page: ChildDom;
+  page: string; // HTMLElement
 }
 
 export default ({
@@ -29,17 +27,52 @@ export default ({
   scriptAttributes,
   pageTitle,
   page,
-}: Props) => [
-  head(
-    meta({ charset: "UTF-8" }),
-    meta({
-      name: "viewport",
-      content: "width=device-width, initial-scale=1.0",
-    }),
-    metaAttributes?.map((attr) => meta(attr)),
-    linkAttributes?.map((attr) => link(attr)),
-    scriptAttributes?.map((attr) => script(attr)),
-    title(pageTitle || "HagenCMS")
-  ),
-  body(page),
-];
+}: Props) => /*html*/ `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    ${
+      metaAttributes
+        ?.map(
+          (attr) =>
+            `<meta 
+            ${Object.entries(attr)
+              .map(([key, value]) => `${key}="${value}" `)
+              .join("")}
+          />`
+        )
+        .join("") || ""
+    }
+    ${
+      linkAttributes
+        ?.map(
+          (attr) =>
+            `<link 
+            ${Object.entries(attr)
+              .map(([key, value]) => `${key}="${value}" `)
+              .join("")}
+          />`
+        )
+        .join("") || ""
+    }
+    ${
+      scriptAttributes
+        ?.map(
+          (attr) =>
+            `<script 
+            ${Object.entries(attr)
+              .map(([key, value]) => `${key}="${value}" `)
+              .join("")}
+          />`
+        )
+        .join("") || ""
+    }
+    <title>${pageTitle || "HagenCMS"}</title>
+  </head>
+  <body>
+    ${page}
+  </body>
+</html>
+`;

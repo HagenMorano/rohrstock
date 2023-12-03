@@ -1,17 +1,15 @@
 {
   "name": "hagencms-server",
   "module": "index.ts",
-  "scripts": {
-    "start": "bun --hot index.ts"
-  },
-  "dependencies": {
-    "mini-van-plate": "^0.5.3"
-  },
   "devDependencies": {
+    "@types/web": "^0.0.125",
     "bun-types": "latest"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "start": "bun --hot index.ts"
   },
   "type": "module"
 }

@@ -1,8 +1,4 @@
-import van from "mini-van-plate/van-plate";
-
 import DefaultLayout from "@/components/layouts/default";
-
-const { div, h1 } = van.tags;
 
 const start = DefaultLayout({
   scriptAttributes: [
@@ -17,7 +13,7 @@ const start = DefaultLayout({
     },
   ],
   pageTitle: "HagenCMS Admin Page",
-  page: [div({ class: "title-wrapper" }, h1("BsUT2Z"))],
+  page: /*html*/ `<div>ADMIN</div>`,
 });
 
 export default start;

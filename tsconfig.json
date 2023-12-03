@@ -7,7 +7,7 @@
   ],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": ["ES2016", "dom"],
     "module": "esnext",
     "target": "esnext",
     "moduleResolution": "bundler",
@@ -25,6 +25,7 @@
     "allowJs": true,
     "esModuleInterop": true,
     "types": [
+      "web",
       "bun-types" // add Bun global
     ],
     "paths": {

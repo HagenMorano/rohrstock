@@ -1,4 +1,3 @@
-import van, { Element } from "mini-van-plate/van-plate";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
@@ -10,12 +9,12 @@ interface Endpoint {
 const pagesPath = "pages";
 const endpoints: Promise<Endpoint>[] = [];
 
-const fetchVanTemplate = async (importPath: string) => {
-  const vanTemplate = (await import(`@/${importPath}`)) as unknown as {
-    default: Element;
+const fetchHtmlTemplate = async (importPath: string) => {
+  const htmlTemplate = (await import(`@/${importPath}`)) as unknown as {
+    default: string; // HTMLElement
   };
 
-  return vanTemplate.default;
+  return htmlTemplate.default;
 };
 
 const generatePageEndpoint = async (filePath: string): Promise<Endpoint> => {
@@ -30,11 +29,11 @@ const generatePageEndpoint = async (filePath: string): Promise<Endpoint> => {
   // Mind: file names may contain multiple dots
   const importPath = filePath.split(".")[0];
 
-  const page = await fetchVanTemplate(importPath);
+  const template = await fetchHtmlTemplate(importPath);
 
   return {
     path,
-    template: van.html(page),
+    template,
   };
 };
 
@@ -82,8 +81,8 @@ Promise.all(endpoints).then((pages) => {
 
       // serve Admin UI
       if (url.pathname === "/admin") {
-        const adminPage = await fetchVanTemplate("admin/index");
-        return new Response(van.html(adminPage), {
+        const adminPage = await fetchHtmlTemplate("admin/index");
+        return new Response(adminPage, {
           headers: {
             "Content-Type": "text/html",
           },
