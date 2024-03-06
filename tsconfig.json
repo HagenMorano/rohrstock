@@ -3,7 +3,9 @@
     "index.*", 
     "admin/**/*", 
     "components/**/*", 
-    "pages/**/*"
+    "routes/**/*",
+    "server/**/*",
+    "utils/**/*"
   ],
   "exclude": ["node_modules"],
   "compilerOptions": {

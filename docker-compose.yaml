@@ -11,7 +11,3 @@ services:
       - "3000:3000"
     volumes:
       - ./:/home/bun/app/:rw,delegated
-
-  imgproxy:
-    container_name: hagencms-imgproxy
-    image: darthsim/imgproxy:v3.20
