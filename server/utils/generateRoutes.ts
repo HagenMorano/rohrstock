@@ -1,9 +1,15 @@
-import { TheRoute } from "@/utils/routeTypes";
+import { TheRoute } from "@/models/route";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 export interface Endpoint {
-  [path: string]: TheRoute;
+  [path: string]: {
+    body: BodyInit | null;
+    responseInit: ResponseInit;
+    // See `propsMap` in TheRoute.multiple
+    // @Todo name this differently
+    revalidate?: (remoteProps: unknown) => BodyInit | null;
+  };
 }
 const pagesPath = "routes";
 
@@ -29,16 +35,38 @@ export const readDirRecursive = async (
 
       // Mind: check if the import file name includes invalid characters!
       const htmlTemplate = await import(`@/${importPath}`);
-      const htmlTemplateWait = (await htmlTemplate.default) as
-        | TheRoute
-        | TheRoute[];
+      const htmlTemplateWait = (await htmlTemplate.default) as TheRoute;
+      const multiple = htmlTemplateWait.multiple;
 
-      if (htmlTemplateWait instanceof Array) {
-        htmlTemplateWait.forEach((template) => {
-          endpoints[path + template.path ?? ""] = template;
+      if (multiple) {
+        const remoteItems = await multiple.source();
+        remoteItems.forEach((remoteProps: any) => {
+          endpoints[path + "/" + remoteProps[multiple.path] ?? ""] = {
+            body: htmlTemplateWait.body(multiple.propsMap(remoteProps)),
+            responseInit: {
+              headers: {
+                "Content-Type": "text/html",
+                ...htmlTemplateWait.responseInit?.headers,
+              },
+              ...htmlTemplateWait.responseInit,
+            },
+            ...(multiple.addPatchEndpoint && {
+              revalidate: (remoteParams) =>
+                htmlTemplateWait.body(multiple.propsMap(remoteParams)),
+            }),
+          };
         });
       } else {
-        endpoints[!path ? "/" : path] = htmlTemplateWait;
+        endpoints[!path ? "/" : path] = {
+          body: htmlTemplateWait.body(),
+          responseInit: {
+            headers: {
+              "Content-Type": "text/html",
+              ...htmlTemplateWait.responseInit?.headers,
+            },
+            ...htmlTemplateWait.responseInit,
+          },
+        };
       }
     }
   }

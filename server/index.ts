@@ -22,22 +22,25 @@ Bun.serve({
     if (endpoint) {
       const [path, routeData] = endpoint;
       if (req.method === "PATCH") {
+        const revalidate = pages[path].revalidate;
         if (!req.body) {
           return new Response("BODY IS EMPTY");
         }
+        if (!revalidate) {
+          return new Response("REVALIDATION IS DISABLED");
+        }
         try {
           const body = await Bun.readableStreamToText(req.body);
-          pages[path].template.body = pages[path].revalidate(JSON.parse(body));
+          const bodyJson = JSON.parse(body);
+
+          pages[path].body = revalidate(bodyJson);
         } catch (e) {
           return new Response("FAIL");
         }
         return new Response("OK");
       }
       if (req.method === "GET") {
-        return new Response(
-          routeData.template.body,
-          routeData.template.options
-        );
+        return new Response(routeData.body, routeData.responseInit);
       }
     }
 

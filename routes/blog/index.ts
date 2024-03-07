@@ -1,19 +1,21 @@
 import DefaultLayout from "@/components/layouts/default";
-import { generateResponse } from "@/utils/routeTypes";
+import { TheRoute } from "@/models/route";
+import { z } from "zod";
 
 type TemplateProps = {
   title: string;
   text: string;
 };
 
-type RemoteProps = {
-  id: string;
-  email: string;
-  body: string;
-};
+const RemoteSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  body: z.string(),
+});
+type RemoteProps = z.infer<typeof RemoteSchema>;
 
-export default generateResponse<TemplateProps, RemoteProps>(
-  ({ title, text }) =>
+export default {
+  body: ({ title, text }: TemplateProps) =>
     DefaultLayout({
       linkAttributes: [
         {
@@ -29,14 +31,20 @@ export default generateResponse<TemplateProps, RemoteProps>(
     </div>
   `,
     }),
-  {
-    multiple: true,
-    source: "https://jsonplaceholder.typicode.com/posts/1/comments",
+  multiple: {
+    source: () =>
+      fetch("https://jsonplaceholder.typicode.com/posts/1/comments").then(
+        async (res) => {
+          const json = await res.json();
+          return json as unknown as RemoteProps[];
+        }
+      ),
     path: "id",
-    propsMap: [
-      ["email", "title"],
-      ["body", "text"],
-    ],
-    revalidate: true,
-  }
-);
+    propsMap: (remoteProps) => ({
+      text: remoteProps.body,
+      title: remoteProps.email,
+    }),
+    addPatchEndpoint: true,
+    schema: RemoteSchema,
+  },
+} as TheRoute<TemplateProps, RemoteProps>;

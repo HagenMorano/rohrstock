@@ -3,6 +3,7 @@
     "index.*", 
     "admin/**/*", 
     "components/**/*", 
+    "models/**/*", 
     "routes/**/*",
     "server/**/*",
     "utils/**/*"

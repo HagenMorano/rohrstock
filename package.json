@@ -11,5 +11,8 @@
   "scripts": {
     "start": "bun --hot server/index.ts"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
 }
