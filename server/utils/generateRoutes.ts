@@ -66,10 +66,48 @@ export const readDirRecursive = async (
       // Mind: check if the import file name includes invalid characters!
       const htmlTemplate = await import(`@/${importPath}`);
       const htmlTemplateWait = (await htmlTemplate.default) as TheRoute;
+      const single = htmlTemplateWait.single;
       const multiple = htmlTemplateWait.multiple;
 
-      if (multiple) {
-        const remoteItems = await multiple.source();
+      if (single) {
+        const remoteItem = await single.source();
+
+        const convertRemotePropsToTemplateProps = (remoteParams: unknown) =>
+          htmlTemplateWait.body(single.propsMap(remoteParams));
+
+        if (single.addCrudEndpoints) {
+          endpoints.POST[`${path}/*`] = {
+            body: "Successfully created endpoint",
+            responseInit: {
+              headers: {
+                "Content-Type": "text/html",
+                ...htmlTemplateWait.responseInit?.headers,
+              },
+              ...htmlTemplateWait.responseInit,
+            },
+            convertRemotePropsToTemplateProps,
+          };
+        }
+
+        endpoints.GET[path] = {
+          body: htmlTemplateWait.body(single.propsMap(remoteItem)),
+          responseInit: {
+            headers: {
+              "Content-Type": "text/html",
+              ...htmlTemplateWait.responseInit?.headers,
+            },
+            ...htmlTemplateWait.responseInit,
+          },
+        };
+        if (single.addCrudEndpoints) {
+          endpoints.PATCH[path] = {
+            body: "Successfully updated endpoint",
+            convertRemotePropsToTemplateProps,
+          };
+          endpoints.DELETE.paths.push(path);
+        }
+      } else if (multiple) {
+        const remoteItems = (await multiple.source()) as any[];
 
         const convertRemotePropsToTemplateProps = (remoteParams: unknown) =>
           htmlTemplateWait.body(multiple.propsMap(remoteParams));
