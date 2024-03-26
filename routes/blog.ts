@@ -1,19 +1,16 @@
 import DefaultLayout from "@/components/layouts/default";
 import { TheRoute } from "@/models/route";
-import { z } from "zod";
 
 type TemplateProps = {
   title: string;
   text: string;
   id: string;
 };
-
-const RemoteSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  body: z.string(),
-});
-type RemoteProps = z.infer<typeof RemoteSchema>;
+type RemoteProps = {
+  id: string;
+  email: string;
+  body: string;
+};
 
 export default {
   body: ({ title, text }) =>
@@ -46,7 +43,13 @@ export default {
       title: remoteProps.email,
       id: remoteProps.id,
     }),
-    addCrudEndpoints: true,
-    schema: RemoteSchema,
+    crudEndpoints: {
+      methods: {
+        delete: true,
+        patch: true,
+        post: true,
+      },
+      revalidateToken: "123",
+    },
   },
 } as TheRoute<TemplateProps, RemoteProps>;

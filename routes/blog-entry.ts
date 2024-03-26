@@ -42,6 +42,13 @@ export default {
       title: remoteProps.title,
       id: remoteProps.id,
     }),
-    addCrudEndpoints: true,
+    crudEndpoints: {
+      methods: {
+        delete: true,
+        patch: true,
+        post: true,
+      },
+      revalidateToken: "123",
+    },
   },
 } as TheRoute<TemplateProps, RemoteProps>;

@@ -2,6 +2,8 @@ import { readDirRecursive } from "@/server/utils/generateRoutes";
 
 const routes = await readDirRecursive("routes");
 
+const revalidateTokenGetParamKey = "revalidate";
+
 Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
@@ -34,7 +36,9 @@ Bun.serve({
         routeData &&
         routeData.convertRemotePropsToTemplateProps &&
         routeToUpdate &&
-        req.body
+        req.body &&
+        routeData.revalidateToken ===
+          url.searchParams.get(revalidateTokenGetParamKey)
       ) {
         try {
           const body = await Bun.readableStreamToText(req.body);
@@ -61,12 +65,17 @@ Bun.serve({
       if (
         routeData &&
         routeData.convertRemotePropsToTemplateProps &&
-        req.body
+        req.body &&
+        routeData.revalidateToken ===
+          url.searchParams.get(revalidateTokenGetParamKey)
       ) {
         try {
           const body = await Bun.readableStreamToText(req.body);
           const bodyJson = JSON.parse(body);
-          routes.DELETE.paths.push(url.pathname);
+          routes.DELETE[url.pathname] = {
+            body: "deleted newly created entry",
+            revalidateToken: routeData.revalidateToken,
+          };
           routes.GET[url.pathname] = {
             body: routeData.convertRemotePropsToTemplateProps(bodyJson),
             responseInit: routeData.responseInit,
@@ -75,6 +84,7 @@ Bun.serve({
             body: "Successfully updated endpoint",
             convertRemotePropsToTemplateProps:
               routeData.convertRemotePropsToTemplateProps,
+            revalidateToken: routeData.revalidateToken,
           };
           return new Response(routeData.body);
         } catch (e) {
@@ -84,16 +94,22 @@ Bun.serve({
     }
 
     if (req.method === "DELETE") {
-      const pathToDelete = routes.DELETE.paths.find(
-        (path) => path === url.pathname
-      );
-      if (pathToDelete) {
-        delete routes.GET[pathToDelete];
-        delete routes.PATCH[pathToDelete];
-        routes.DELETE.paths = routes.DELETE.paths.filter(
-          (path) => path !== pathToDelete
-        );
-        return new Response(routes.DELETE.body);
+      const routeData = Object.entries(routes.DELETE).find(
+        ([path]) => path === url.pathname
+      )?.[1];
+      if (
+        routeData &&
+        routeData.revalidateToken ===
+          url.searchParams.get(revalidateTokenGetParamKey)
+      ) {
+        try {
+          delete routes.GET[url.pathname];
+          delete routes.PATCH[url.pathname];
+          delete routes.DELETE[url.pathname];
+          return new Response(routeData.body);
+        } catch (e) {
+          return new Response("FAIL");
+        }
       }
     }
 

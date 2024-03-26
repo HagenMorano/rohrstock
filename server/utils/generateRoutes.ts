@@ -19,12 +19,15 @@ interface UpdateEndpointRecords {
     convertRemotePropsToTemplateProps: (
       remoteProps: unknown
     ) => BodyInit | null;
+    revalidateToken: string;
   };
 }
 
 interface DeleteEndpointRecords {
-  body: BodyInit | null;
-  paths: string[];
+  [path: string]: {
+    body: BodyInit | null;
+    revalidateToken: string;
+  };
 }
 
 export interface Endpoint {
@@ -41,10 +44,7 @@ export const readDirRecursive = async (
     GET: {},
     POST: {},
     PATCH: {},
-    DELETE: {
-      body: "Successfully removed",
-      paths: [],
-    },
+    DELETE: {},
   }
 ) => {
   for (const file of readdirSync(currentPath)) {
@@ -75,20 +75,6 @@ export const readDirRecursive = async (
         const convertRemotePropsToTemplateProps = (remoteParams: unknown) =>
           htmlTemplateWait.body(single.propsMap(remoteParams));
 
-        if (single.addCrudEndpoints) {
-          endpoints.POST[`${path}/*`] = {
-            body: "Successfully created endpoint",
-            responseInit: {
-              headers: {
-                "Content-Type": "text/html",
-                ...htmlTemplateWait.responseInit?.headers,
-              },
-              ...htmlTemplateWait.responseInit,
-            },
-            convertRemotePropsToTemplateProps,
-          };
-        }
-
         endpoints.GET[path] = {
           body: htmlTemplateWait.body(single.propsMap(remoteItem)),
           responseInit: {
@@ -99,12 +85,12 @@ export const readDirRecursive = async (
             ...htmlTemplateWait.responseInit,
           },
         };
-        if (single.addCrudEndpoints) {
+        if (single.crudEndpoints?.methods.patch) {
           endpoints.PATCH[path] = {
             body: "Successfully updated endpoint",
             convertRemotePropsToTemplateProps,
+            revalidateToken: single.crudEndpoints.revalidateToken,
           };
-          endpoints.DELETE.paths.push(path);
         }
       } else if (multiple) {
         const remoteItems = (await multiple.source()) as any[];
@@ -112,7 +98,7 @@ export const readDirRecursive = async (
         const convertRemotePropsToTemplateProps = (remoteParams: unknown) =>
           htmlTemplateWait.body(multiple.propsMap(remoteParams));
 
-        if (multiple.addCrudEndpoints) {
+        if (multiple.crudEndpoints?.methods.post) {
           endpoints.POST[`${path}/*`] = {
             body: "Successfully created endpoint",
             responseInit: {
@@ -123,6 +109,7 @@ export const readDirRecursive = async (
               ...htmlTemplateWait.responseInit,
             },
             convertRemotePropsToTemplateProps,
+            revalidateToken: multiple.crudEndpoints.revalidateToken,
           };
         }
 
@@ -138,12 +125,18 @@ export const readDirRecursive = async (
               ...htmlTemplateWait.responseInit,
             },
           };
-          if (multiple.addCrudEndpoints) {
+          if (multiple.crudEndpoints?.methods.patch) {
             endpoints.PATCH[dynamicPath] = {
               body: "Successfully updated endpoint",
               convertRemotePropsToTemplateProps,
+              revalidateToken: multiple.crudEndpoints.revalidateToken,
             };
-            endpoints.DELETE.paths.push(dynamicPath);
+          }
+          if (multiple.crudEndpoints?.methods.delete) {
+            endpoints.DELETE[dynamicPath] = {
+              body: null,
+              revalidateToken: multiple.crudEndpoints.revalidateToken,
+            };
           }
         });
       } else {

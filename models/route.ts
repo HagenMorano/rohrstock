@@ -1,5 +1,3 @@
-import { ZodSchema } from "zod";
-
 type RemoteSource<TemplateProps = unknown, RemoteProps = unknown> = {
   /**
    * An async function that returns the data for the route.
@@ -14,13 +12,32 @@ type RemoteSource<TemplateProps = unknown, RemoteProps = unknown> = {
   propsMap: (remoteProps: RemoteProps) => TemplateProps;
   /**
    * Enable to create additional CRUD endpoints for each generated route.
-   * 1. POST endpoint to create a single route
-   * Make sure to send a valid body!
-   * 2. PATCH endpoint to update a single route
-   * Make sure to send a valid body
-   * 3. DELETE endpoint to delete a single route
    */
-  addCrudEndpoints?: boolean;
+  crudEndpoints?: {
+    methods: {
+      /**
+       * Enable POST endpoint to create a single route
+       * Make sure to send a valid body!
+       * Mind: Has no effect on single routes
+       **/
+      post: boolean;
+      /**
+       * Enable PATCH endpoint to update a single route
+       * Make sure to send a valid body
+       */
+      patch: boolean;
+      /**
+       * Enable DELETE endpoint to delete a single route
+       * Mind: Has no effect on single routes
+       */
+      delete: boolean;
+    };
+    /**
+     * The revalidateToken to authenticate against the `crudEndpoints`.
+     * Should be set via env var.
+     */
+    revalidateToken: string;
+  };
 };
 
 export type TheRoute<TemplateProps = unknown, RemoteProps = unknown> = {
