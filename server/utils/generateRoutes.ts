@@ -2,20 +2,50 @@ import { TheRoute } from "@/models/route";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-export interface Endpoint {
+const pagesPath = "routes";
+
+interface GetEndpointRecords {
   [path: string]: {
     body: BodyInit | null;
-    responseInit: ResponseInit;
-    // See `propsMap` in TheRoute.multiple
-    // @Todo name this differently
-    revalidate?: (remoteProps: unknown) => BodyInit | null;
+    responseInit?: ResponseInit;
   };
 }
-const pagesPath = "routes";
+
+interface UpdateEndpointRecords {
+  [path: string]: {
+    body: BodyInit | null;
+    responseInit?: ResponseInit;
+    // See `propsMap` in TheRoute.multiple
+    convertRemotePropsToTemplateProps: (
+      remoteProps: unknown
+    ) => BodyInit | null;
+  };
+}
+
+interface DeleteEndpointRecords {
+  body: BodyInit | null;
+  paths: string[];
+}
+
+export interface Endpoint {
+  GET: GetEndpointRecords;
+  POST: UpdateEndpointRecords;
+  PATCH: UpdateEndpointRecords;
+  // Contains paths that can be removed by a DELETE request
+  DELETE: DeleteEndpointRecords;
+}
 
 export const readDirRecursive = async (
   currentPath: string,
-  endpoints: Endpoint = {}
+  endpoints: Endpoint = {
+    GET: {},
+    POST: {},
+    PATCH: {},
+    DELETE: {
+      body: "Successfully removed",
+      paths: [],
+    },
+  }
 ) => {
   for (const file of readdirSync(currentPath)) {
     const absolute = join(currentPath, file);
@@ -40,8 +70,27 @@ export const readDirRecursive = async (
 
       if (multiple) {
         const remoteItems = await multiple.source();
+
+        const convertRemotePropsToTemplateProps = (remoteParams: unknown) =>
+          htmlTemplateWait.body(multiple.propsMap(remoteParams));
+
+        if (multiple.addCrudEndpoints) {
+          endpoints.POST[`${path}/*`] = {
+            body: "Successfully created endpoint",
+            responseInit: {
+              headers: {
+                "Content-Type": "text/html",
+                ...htmlTemplateWait.responseInit?.headers,
+              },
+              ...htmlTemplateWait.responseInit,
+            },
+            convertRemotePropsToTemplateProps,
+          };
+        }
+
         remoteItems.forEach((remoteProps: any) => {
-          endpoints[path + "/" + remoteProps[multiple.path] ?? ""] = {
+          const dynamicPath = path + "/" + remoteProps[multiple.slug];
+          endpoints.GET[dynamicPath] = {
             body: htmlTemplateWait.body(multiple.propsMap(remoteProps)),
             responseInit: {
               headers: {
@@ -50,14 +99,17 @@ export const readDirRecursive = async (
               },
               ...htmlTemplateWait.responseInit,
             },
-            ...(multiple.addPatchEndpoint && {
-              revalidate: (remoteParams) =>
-                htmlTemplateWait.body(multiple.propsMap(remoteParams)),
-            }),
           };
+          if (multiple.addCrudEndpoints) {
+            endpoints.PATCH[dynamicPath] = {
+              body: "Successfully updated endpoint",
+              convertRemotePropsToTemplateProps,
+            };
+            endpoints.DELETE.paths.push(dynamicPath);
+          }
         });
       } else {
-        endpoints[!path ? "/" : path] = {
+        endpoints.GET[!path ? "/" : path] = {
           body: htmlTemplateWait.body(),
           responseInit: {
             headers: {

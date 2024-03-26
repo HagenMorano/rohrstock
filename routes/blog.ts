@@ -5,6 +5,7 @@ import { z } from "zod";
 type TemplateProps = {
   title: string;
   text: string;
+  id: string;
 };
 
 const RemoteSchema = z.object({
@@ -15,7 +16,7 @@ const RemoteSchema = z.object({
 type RemoteProps = z.infer<typeof RemoteSchema>;
 
 export default {
-  body: ({ title, text }: TemplateProps) =>
+  body: ({ title, text }) =>
     DefaultLayout({
       linkAttributes: [
         {
@@ -39,12 +40,13 @@ export default {
           return json as unknown as RemoteProps[];
         }
       ),
-    path: "id",
+    slug: "id",
     propsMap: (remoteProps) => ({
       text: remoteProps.body,
       title: remoteProps.email,
+      id: remoteProps.id,
     }),
-    addPatchEndpoint: true,
+    addCrudEndpoints: true,
     schema: RemoteSchema,
   },
 } as TheRoute<TemplateProps, RemoteProps>;
