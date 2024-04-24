@@ -1,157 +1,169 @@
-import { TheRoute } from "@/models/route";
+import { ReturnRoute, Route } from "@/models/route";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const pagesPath = "routes";
 
-interface GetEndpointRecords {
-  [path: string]: {
-    body: BodyInit | null;
-    responseInit?: ResponseInit;
-  };
+export enum HttpMethods {
+  "GET" = "GET",
+  "POST" = "POST",
+  "PATCH" = "PATCH",
+  "PUT" = "PUT",
+  "DELETE" = "DELETE",
 }
 
-interface UpdateEndpointRecords {
-  [path: string]: {
-    body: BodyInit | null;
-    responseInit?: ResponseInit;
-    // See `propsMap` in TheRoute.multiple
-    convertRemotePropsToTemplateProps: (
-      remoteProps: unknown
-    ) => BodyInit | null;
-    revalidateToken: string;
-  };
+interface ServerRoute {
+  path: string;
+  routeData: RouteData;
 }
 
-interface DeleteEndpointRecords {
-  [path: string]: {
-    body: BodyInit | null;
-    revalidateToken: string;
+export type IServerRoutes = {};
+export class ServerRoutes {
+  #routes: { [key in HttpMethods]: ServerRoute[] } = {
+    GET: [],
+    POST: [],
+    PATCH: [],
+    PUT: [],
+    DELETE: [],
   };
+
+  createRoute(routeData: RouteData, method: HttpMethods, path: string) {
+    this.#routes[method].push({
+      path,
+      routeData,
+    });
+  }
+  readRoute(method: HttpMethods, path: string): RouteData | undefined {
+    return this.#routes[method].find((route) => route.path === path)?.routeData;
+  }
+  async updateRoute(method: HttpMethods, path: string) {
+    const route = this.#routes[method].find((route) => route.path === path);
+    if (!route) {
+      console.error("NOT FOUND");
+      return;
+    }
+    await route.routeData.update();
+  }
+  deleteRoute(method: HttpMethods, path: string) {
+    this.#routes[method] = this.#routes[method].filter(
+      (route) => route.path === path
+    );
+  }
 }
 
-export interface Endpoint {
-  GET: GetEndpointRecords;
-  POST: UpdateEndpointRecords;
-  PATCH: UpdateEndpointRecords;
-  // Contains paths that can be removed by a DELETE request
-  DELETE: DeleteEndpointRecords;
+export class RouteData {
+  #build: Route["build"];
+  #prerenderData: any;
+  #prerenderDataFn: Route["prerenderDataFn"];
+
+  constructor(
+    build: Route["build"],
+    prerenderData: any,
+    prerenderDataFn: Route["prerenderDataFn"]
+  ) {
+    this.#build = build;
+    if (prerenderData) {
+      this.#prerenderData = prerenderData;
+    }
+    if (prerenderDataFn) {
+      this.#prerenderDataFn = prerenderDataFn;
+    }
+  }
+
+  async getResponse(req: Request, serverRoutes: ServerRoutes) {
+    return await this.#build({
+      req,
+      serverRoutes,
+      prerenderData: this.#prerenderData,
+    });
+  }
+
+  async update() {
+    if (!this.#prerenderDataFn) {
+      console.error("No prerenderDataFn set");
+      return;
+    }
+    this.#prerenderData = await this.#prerenderDataFn();
+  }
 }
+
+export const generateServerPath = (
+  filePath: string,
+  customSlug?: Route["slug"]
+): string => {
+  // Mind: needs to be more safe
+  // Mind: folder names may contain dots
+  // Mind: file names may contain multiple dots
+  let path = filePath.split(pagesPath)[1].split(".")[0];
+  // Index pages should not have and do not need a name.
+  // Mind: a folder may have 'index' in its name
+  path = path.split("/index")[0];
+  if (customSlug) {
+    let pathItems = path.split("/");
+    pathItems[pathItems.length - 1] = customSlug;
+    path = pathItems.join("/");
+  }
+  return path;
+};
+
+/**
+ * Needs to be exported in order to be mockable by tests.
+ */
+export const importRoute = async (importPath: string): Promise<ReturnRoute> => {
+  // Mind: check if the import file name includes invalid characters!
+  const route = await import(`@/${importPath}`);
+  return (await route.default) as ReturnRoute;
+};
+
+export const createRouteFromRouteData = async (
+  routeData: Route,
+  path: string,
+  serverRoutes: ServerRoutes
+) => {
+  let prerenderData;
+
+  console.log("render", path);
+  if (routeData.prerenderDataFn) {
+    prerenderData = await routeData.prerenderDataFn();
+  }
+
+  serverRoutes.createRoute(
+    new RouteData(routeData.build, prerenderData, routeData.prerenderDataFn),
+    routeData.method || HttpMethods.GET, // default to "GET"
+    path || "/" // default to "/" (= index)
+  );
+};
 
 export const readDirRecursive = async (
   currentPath: string,
-  endpoints: Endpoint = {
-    GET: {},
-    POST: {},
-    PATCH: {},
-    DELETE: {},
-  }
+  serverRoutes: ServerRoutes = new ServerRoutes()
 ) => {
+  // console.log(currentPath);
   for (const file of readdirSync(currentPath)) {
-    const absolute = join(currentPath, file);
-    if (statSync(absolute).isDirectory()) {
-      await readDirRecursive(absolute, endpoints);
+    const absoluteFilePath = join(currentPath, file);
+    if (statSync(absoluteFilePath).isDirectory()) {
+      await readDirRecursive(absoluteFilePath, serverRoutes);
     } else {
-      // Mind: needs to be more safe
       // Mind: folder names may contain dots
       // Mind: file names may contain multiple dots
-      let path = absolute.split(pagesPath)[1].split(".")[0];
-      // Index pages should not have a name
-      // Mind: a folder may have 'index' in its name
-      path = path.split("/index")[0];
-      // Mind: folder names may contain dots
-      // Mind: file names may contain multiple dots
-      const importPath = absolute.split(".")[0];
+      const routeData = await importRoute(absoluteFilePath.split(".")[0]);
 
-      // Mind: check if the import file name includes invalid characters!
-      const htmlTemplate = await import(`@/${importPath}`);
-      const htmlTemplateWait = (await htmlTemplate.default) as TheRoute;
-      const single = htmlTemplateWait.single;
-      const multiple = htmlTemplateWait.multiple;
-
-      if (single) {
-        const remoteItem = await single.source();
-
-        const convertRemotePropsToTemplateProps = (remoteParams: unknown) =>
-          htmlTemplateWait.body(single.propsMap(remoteParams));
-
-        endpoints.GET[path] = {
-          body: htmlTemplateWait.body(single.propsMap(remoteItem)),
-          responseInit: {
-            headers: {
-              "Content-Type": "text/html",
-              ...htmlTemplateWait.responseInit?.headers,
-            },
-            ...htmlTemplateWait.responseInit,
-          },
-        };
-        if (single.crudEndpoints?.methods.patch) {
-          endpoints.PATCH[path] = {
-            body: "Successfully updated endpoint",
-            convertRemotePropsToTemplateProps,
-            revalidateToken: single.crudEndpoints.revalidateToken,
-          };
+      if (Array.isArray(routeData)) {
+        for (const singleRouteData of routeData) {
+          await createRouteFromRouteData(
+            singleRouteData,
+            generateServerPath(absoluteFilePath, singleRouteData.slug),
+            serverRoutes
+          );
         }
-      } else if (multiple) {
-        const remoteItems = (await multiple.source()) as any[];
-
-        const convertRemotePropsToTemplateProps = (remoteParams: unknown) =>
-          htmlTemplateWait.body(multiple.propsMap(remoteParams));
-
-        if (multiple.crudEndpoints?.methods.post) {
-          endpoints.POST[`${path}/*`] = {
-            body: "Successfully created endpoint",
-            responseInit: {
-              headers: {
-                "Content-Type": "text/html",
-                ...htmlTemplateWait.responseInit?.headers,
-              },
-              ...htmlTemplateWait.responseInit,
-            },
-            convertRemotePropsToTemplateProps,
-            revalidateToken: multiple.crudEndpoints.revalidateToken,
-          };
-        }
-
-        remoteItems.forEach((remoteProps: any) => {
-          const dynamicPath = path + "/" + remoteProps[multiple.slug];
-          endpoints.GET[dynamicPath] = {
-            body: htmlTemplateWait.body(multiple.propsMap(remoteProps)),
-            responseInit: {
-              headers: {
-                "Content-Type": "text/html",
-                ...htmlTemplateWait.responseInit?.headers,
-              },
-              ...htmlTemplateWait.responseInit,
-            },
-          };
-          if (multiple.crudEndpoints?.methods.patch) {
-            endpoints.PATCH[dynamicPath] = {
-              body: "Successfully updated endpoint",
-              convertRemotePropsToTemplateProps,
-              revalidateToken: multiple.crudEndpoints.revalidateToken,
-            };
-          }
-          if (multiple.crudEndpoints?.methods.delete) {
-            endpoints.DELETE[dynamicPath] = {
-              body: null,
-              revalidateToken: multiple.crudEndpoints.revalidateToken,
-            };
-          }
-        });
       } else {
-        endpoints.GET[!path ? "/" : path] = {
-          body: htmlTemplateWait.body(),
-          responseInit: {
-            headers: {
-              "Content-Type": "text/html",
-              ...htmlTemplateWait.responseInit?.headers,
-            },
-            ...htmlTemplateWait.responseInit,
-          },
-        };
+        await createRouteFromRouteData(
+          routeData,
+          generateServerPath(absoluteFilePath, routeData.slug),
+          serverRoutes
+        );
       }
     }
   }
-  return endpoints;
+  return serverRoutes;
 };

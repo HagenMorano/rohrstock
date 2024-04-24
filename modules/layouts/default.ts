@@ -1,5 +1,3 @@
-import { title } from "node:process";
-
 interface Props {
   // props are incomplete!
   metaAttributes?: {

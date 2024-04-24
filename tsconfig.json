@@ -1,8 +1,7 @@
 {
   "include": [
-    "index.*", 
-    "admin/**/*", 
-    "components/**/*", 
+    "__mocks__/**/*", 
+    "modules/**/*",
     "models/**/*", 
     "routes/**/*",
     "server/**/*",

@@ -2,7 +2,17 @@ import DefaultLayout from "@/modules/layouts/default";
 import { ReturnRoute } from "@/models/route";
 
 export default {
-  build: ({ req }) => {
+  prerenderDataFn: async () => {
+    return await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          title: new Date(),
+          text: "My text",
+        });
+      }, 3000);
+    });
+  },
+  build: ({ prerenderData }) => {
     return new Response(
       DefaultLayout({
         linkAttributes: [
@@ -15,7 +25,7 @@ export default {
         page: /*html*/ `
           <div class="title-wrapper">
             <h1>HagenCMS</h1>
-            <h2>${JSON.stringify(req.headers)}</h2>
+            <h2>${prerenderData.title}</h2>
           </div>
         `,
       }),
