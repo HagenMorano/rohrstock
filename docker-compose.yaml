@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   hagencms-server:
     container_name: hagencms-server

@@ -1,5 +1,5 @@
 import DefaultLayout from "@/modules/layouts/default";
-import { ReturnRoute } from "@/models/route";
+import { ReturnRoute } from "@/server/types";
 
 export default {
   build: () => {
@@ -8,11 +8,11 @@ export default {
         linkAttributes: [
           {
             rel: "stylesheet",
-            href: "/static/normalize.css",
+            href: "/normalize.css",
           },
           {
             rel: "stylesheet",
-            href: "/static/style.css",
+            href: "/style.css",
           },
         ],
         pageTitle: "HagenCMS Demo Page",

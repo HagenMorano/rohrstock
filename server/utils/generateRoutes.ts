@@ -17,7 +17,6 @@ interface ServerRoute {
   routeData: RouteData;
 }
 
-export type IServerRoutes = {};
 export class ServerRoutes {
   #routes: { [key in HttpMethods]: ServerRoute[] } = {
     GET: [],
@@ -138,7 +137,6 @@ export const readDirRecursive = async (
   currentPath: string,
   serverRoutes: ServerRoutes = new ServerRoutes()
 ) => {
-  // console.log(currentPath);
   for (const file of readdirSync(currentPath)) {
     const absoluteFilePath = join(currentPath, file);
     if (statSync(absoluteFilePath).isDirectory()) {

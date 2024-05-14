@@ -1,5 +1,4 @@
-import { ReturnRoute } from "@/models/route";
-import { HttpMethods } from "@/server/utils/generateRoutes";
+import { HttpMethods, ReturnRoute } from "@/server/types";
 
 export default {
   build: async ({ serverRoutes }) => {

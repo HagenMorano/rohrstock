@@ -66,7 +66,7 @@
     --screen-xl: 96rem; /* 1536px when font-size: 16px */
 }
 
-:root.dark {    
+:root.dark {
     --lightness-100: 10%;
     --lightness-200: 20%;
     --lightness-300: 30%;

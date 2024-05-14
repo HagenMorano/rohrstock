@@ -1,4 +1,4 @@
-import { ReturnRoute } from "@/models/route";
+import { ReturnRoute } from "@/server/types";
 
 export default [
   {
