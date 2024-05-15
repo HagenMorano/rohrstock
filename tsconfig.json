@@ -1,11 +1,9 @@
 {
   "include": [
-    "__mocks__/**/*", 
+    "errors/**/*",
     "modules/**/*",
-    "models/**/*", 
     "routes/**/*",
     "server/**/*",
-    "utils/**/*"
   ],
   "exclude": ["node_modules"],
   "compilerOptions": {

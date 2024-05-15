@@ -9,7 +9,7 @@ export default {
           title: new Date(),
           text: "My text",
         });
-      }, 3000);
+      }, 1000);
     });
   },
   build: ({ prerenderData }) => {

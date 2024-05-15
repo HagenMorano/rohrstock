@@ -1,6 +1,6 @@
 services:
-  hagencms-server:
-    container_name: hagencms-server
+  rohrstock-server:
+    container_name: rohrstock-server
     build:
       context: .
       dockerfile: Dockerfile

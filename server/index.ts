@@ -1,43 +1,46 @@
 import readDirRecursive from "./utils/readDirRecursive";
 import { ServerRoutes } from "./classes/ServerRoutes";
 import importRoute from "./utils/importRoute";
-import createServerRouteFromRouteData from "./utils/createServerRouteFromRouteData";
-import generateServerPath from "./utils/generateServerPath";
+import createServerRoutesFromRouteData from "./utils/createServerRoutesFromRouteData";
 import { HttpMethods } from "./types";
+import { readdirSync, statSync } from "fs";
+import { join } from "path";
 
 const rootPath = "routes";
-
 const serverRoutes = new ServerRoutes();
 
+const errorRootPath = "errors";
+const errorServerRoutes = new ServerRoutes();
+
+// Populate the serverRoutes
 await readDirRecursive(rootPath, async (path) => {
   // Mind: folder names may contain dots
   // Mind: file names may contain multiple dots
   const routeData = await importRoute(path.split(".")[0]);
 
-  const pathWithoutRootPath = path.split(rootPath)[1];
+  await createServerRoutesFromRouteData(
+    routeData,
+    path.split(rootPath)[1],
+    serverRoutes
+  );
+});
 
-  if (Array.isArray(routeData)) {
-    for (const singleRouteData of routeData) {
-      await createServerRouteFromRouteData(
-        singleRouteData,
-        generateServerPath(pathWithoutRootPath, {
-          path: singleRouteData.path,
-          slug: singleRouteData.slug,
-        }),
-        serverRoutes
-      );
-    }
-  } else {
-    await createServerRouteFromRouteData(
+// Populate the errorServerRoutes
+for (const file of readdirSync(errorRootPath)) {
+  const path = join(errorRootPath, file);
+  // Omit folders in errors folder
+  if (!statSync(path).isDirectory()) {
+    // Mind: folder names may contain dots
+    // Mind: file names may contain multiple dots
+    const routeData = await importRoute(path.split(".")[0]);
+
+    await createServerRoutesFromRouteData(
       routeData,
-      generateServerPath(pathWithoutRootPath, {
-        path: routeData.path,
-        slug: routeData.slug,
-      }),
-      serverRoutes
+      path.split(errorRootPath)[1],
+      errorServerRoutes
     );
   }
-});
+}
 
 Bun.serve({
   async fetch(req) {
@@ -51,8 +54,12 @@ Bun.serve({
       return await routeData.getResponse(req, serverRoutes);
     }
 
-    return new Response("Page not found", {
-      status: 404,
-    });
+    const errorRouteData = errorServerRoutes.readRoute(httpMethod, "/404");
+
+    return errorRouteData
+      ? await errorRouteData.getResponse(req, serverRoutes)
+      : new Response("Page not found", {
+          status: 404,
+        });
   },
 });
