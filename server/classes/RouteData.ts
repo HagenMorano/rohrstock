@@ -3,13 +3,13 @@ import { ServerRoutes } from "./ServerRoutes";
 
 export class RouteData {
   #build: Route["build"];
-  #prerenderData: any;
-  #prerenderDataFn: Route["prerenderDataFn"];
+  #prerenderData?: any;
+  #prerenderDataFn?: Route["prerenderDataFn"];
 
   constructor(
     build: Route["build"],
-    prerenderData: any,
-    prerenderDataFn: Route["prerenderDataFn"]
+    prerenderData?: any,
+    prerenderDataFn?: Route["prerenderDataFn"]
   ) {
     this.#build = build;
     if (prerenderData) {

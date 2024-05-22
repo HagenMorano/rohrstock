@@ -1,6 +1,5 @@
 {
   "include": [
-    "errors/**/*",
     "modules/**/*",
     "routes/**/*",
     "server/**/*",
