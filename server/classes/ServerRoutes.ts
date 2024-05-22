@@ -11,6 +11,7 @@ export class ServerRoutes {
   #routes: ServerRoute[] = [];
 
   createRoute(routeData: RouteData, method: HttpMethods, path: string) {
+    console.log(`Creating "${method} ${path}"`);
     this.#routes.push({
       path,
       method,
@@ -36,7 +37,6 @@ export class ServerRoutes {
     await route.routeData.update();
   }
 
-  // @Todo showcase!
   async updateRouteByRouteId(routeId: Route["routeId"]) {
     console.log(`Updating by routeId "${routeId}"`);
     const route = this.#routes.find(
@@ -54,13 +54,14 @@ export class ServerRoutes {
   deleteRoute(method: HttpMethods, path: string) {
     console.log(`Deleting ${method} ${path}`);
     this.#routes = this.#routes.filter(
-      (route) => route.path === path && route.method === method
+      (route) => !(route.path === path && route.method === method)
     );
   }
 
-  // @Todo showcase!
   deleteRouteByRouteId(routeId: Route["routeId"]) {
     console.log(`Deleting by routeId "${routeId}"`);
-    this.#routes.filter((route) => route.routeData.getRouteId() === routeId);
+    this.#routes = this.#routes.filter(
+      (route) => route.routeData.getRouteId() !== routeId
+    );
   }
 }

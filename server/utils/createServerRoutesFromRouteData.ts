@@ -10,7 +10,6 @@ const createServerRouteFromRouteData = async (
 ) => {
   let prerenderData;
 
-  console.log("render", path);
   if (routeData.prerenderDataFn) {
     prerenderData = await routeData.prerenderDataFn();
   }
