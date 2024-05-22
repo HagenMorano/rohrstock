@@ -2,11 +2,12 @@ import DefaultLayout from "@/modules/layouts/default";
 import { ReturnRoute } from "@/server/types";
 
 export default {
+  routeId: "MyRouteId",
   prerenderDataFn: async () => {
     return await new Promise((resolve) => {
       setTimeout(() => {
         resolve({
-          title: new Date(),
+          title: new Date().toString(),
           text: "My text",
         });
       }, 1000);
@@ -25,7 +26,7 @@ export default {
         page: /*html*/ `
           <div class="title-wrapper">
             <h1>HagenCMS</h1>
-            <h2>${prerenderData.title}</h2>
+            <h2>${prerenderData?.title}</h2>
           </div>
         `,
       }),
@@ -34,4 +35,4 @@ export default {
       }
     );
   },
-} as ReturnRoute;
+} as ReturnRoute<{ title: string; text: string }>;

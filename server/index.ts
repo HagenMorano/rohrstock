@@ -10,6 +10,19 @@ const rootPath = "routes";
 const serverRoutes = new ServerRoutes();
 const errorRoutes: Record<string, RouteData> = {};
 
+// Populate the serverRoutes
+await readDirRecursive(rootPath, async (path) => {
+  // Mind: folder names may contain dots
+  // Mind: file names may contain multiple dots
+  const routeData = await importRoute(path.split(".")[0]);
+
+  await createServerRoutesFromRouteData(
+    routeData,
+    path.split(rootPath)[1],
+    serverRoutes
+  );
+});
+
 try {
   const routeData = await importRoute(join(rootPath, "404"));
   if (Array.isArray(routeData)) {
@@ -35,19 +48,6 @@ try {
       })
   );
 }
-
-// Populate the serverRoutes
-await readDirRecursive(rootPath, async (path) => {
-  // Mind: folder names may contain dots
-  // Mind: file names may contain multiple dots
-  const routeData = await importRoute(path.split(".")[0]);
-
-  await createServerRoutesFromRouteData(
-    routeData,
-    path.split(rootPath)[1],
-    serverRoutes
-  );
-});
 
 Bun.serve({
   async fetch(req) {

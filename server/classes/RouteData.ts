@@ -5,11 +5,13 @@ export class RouteData {
   #build: Route["build"];
   #prerenderData?: any;
   #prerenderDataFn?: Route["prerenderDataFn"];
+  #routeId?: Route["routeId"];
 
   constructor(
     build: Route["build"],
     prerenderData?: any,
-    prerenderDataFn?: Route["prerenderDataFn"]
+    prerenderDataFn?: Route["prerenderDataFn"],
+    routeId?: Route["routeId"]
   ) {
     this.#build = build;
     if (prerenderData) {
@@ -17,6 +19,9 @@ export class RouteData {
     }
     if (prerenderDataFn) {
       this.#prerenderDataFn = prerenderDataFn;
+    }
+    if (routeId) {
+      this.#routeId = routeId;
     }
   }
 
@@ -34,5 +39,9 @@ export class RouteData {
       return;
     }
     this.#prerenderData = await this.#prerenderDataFn();
+  }
+
+  getRouteId() {
+    return this.#routeId;
   }
 }

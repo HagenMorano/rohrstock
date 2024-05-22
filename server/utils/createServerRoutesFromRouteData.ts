@@ -16,7 +16,12 @@ const createServerRouteFromRouteData = async (
   }
 
   serverRoutes.createRoute(
-    new RouteData(routeData.build, prerenderData, routeData.prerenderDataFn),
+    new RouteData(
+      routeData.build,
+      prerenderData,
+      routeData.prerenderDataFn,
+      routeData.routeId
+    ),
     routeData.method || HttpMethods.GET, // default to "GET"
     path || "/" // default to "/" (= index)
   );

@@ -1,4 +1,4 @@
-import { HttpMethods } from "../types";
+import { HttpMethods, Route } from "../types";
 import { RouteData } from "./RouteData";
 
 interface ServerRoute {
@@ -17,24 +17,50 @@ export class ServerRoutes {
       routeData,
     });
   }
+
   readRoute(method: HttpMethods, path: string): RouteData | undefined {
     return this.#routes.find(
       (route) => route.path === path && route.method === method
     )?.routeData;
   }
+
   async updateRoute(method: HttpMethods, path: string) {
+    console.log(`Updating "${method} ${path}"`);
     const route = this.#routes.find(
       (route) => route.path === path && route.method === method
     );
     if (!route) {
-      console.error("NOT FOUND");
+      console.error(`Could not update "${method} ${path}". Route not found.`);
       return;
     }
     await route.routeData.update();
   }
+
+  // @Todo showcase!
+  async updateRouteByRouteId(routeId: Route["routeId"]) {
+    console.log(`Updating by routeId "${routeId}"`);
+    const route = this.#routes.find(
+      (route) => route.routeData.getRouteId() === routeId
+    );
+    if (!route) {
+      console.error(
+        `Could not update route with id "${routeId}". Route not found.`
+      );
+      return;
+    }
+    await route.routeData.update();
+  }
+
   deleteRoute(method: HttpMethods, path: string) {
+    console.log(`Deleting ${method} ${path}`);
     this.#routes = this.#routes.filter(
       (route) => route.path === path && route.method === method
     );
+  }
+
+  // @Todo showcase!
+  deleteRouteByRouteId(routeId: Route["routeId"]) {
+    console.log(`Deleting by routeId "${routeId}"`);
+    this.#routes.filter((route) => route.routeData.getRouteId() === routeId);
   }
 }
